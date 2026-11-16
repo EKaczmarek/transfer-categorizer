@@ -1,32 +1,32 @@
-# Transfer Categorizer – plan projektu
+# Transfer Categorizer – project plan
 
-## Cel
-Projekt portfolio, który jednocześnie:
-- odświeża **.NET / C#** (ASP.NET Core, EF Core, async, DI, testy),
-- wzmacnia **SQL** (PostgreSQL: indeksy, CTE, funkcje okna, EXPLAIN),
-- wykorzystuje wiedzę z **Databricks** (medallion, Auto Loader, Delta, Unity Catalog),
-- pokazuje wymagania z ogłoszeń: messaging, event-driven, testy unit/integration/contract, CI/CD, logging.
+## Goal
+A portfolio project that at the same time:
+- refreshes **.NET / C#** (ASP.NET Core, EF Core, async, DI, testing),
+- strengthens **SQL** (PostgreSQL: indexes, CTEs, window functions, EXPLAIN),
+- uses my **Databricks** knowledge (medallion, Auto Loader, Delta, Unity Catalog),
+- shows the requirements from job postings: messaging, event-driven design, unit/integration/contract tests, CI/CD, logging.
 
-## Założenia
-- Baza: **PostgreSQL 16**. Broker na start: **RabbitMQ**, potem Azure Service Bus jako druga implementacja za tym samym interfejsem.
-- Kategoryzator za interfejsem `ITransferCategorizer`: najpierw reguły, później model ML.
-- Zasada: **najpierw wąskie MVP (etapy 0-3)**, reszta dopiero gdy rdzeń działa i ma testy.
+## Assumptions
+- Database: **PostgreSQL 16**. Initial broker: **RabbitMQ**, then Azure Service Bus as a second implementation behind the same interface.
+- Categorizer behind the `ITransferCategorizer` interface: rules first, ML model later.
+- Rule: **a narrow MVP first (stages 0-3)**, the rest only once the core works and is tested.
 
-## Przepływ
-1. `POST /transfers` zapisuje przelew i wiersz w tabeli Outbox w jednej transakcji.
-2. Dispatcher czyta Outbox i publikuje `TransferCreated` do brokera.
-3. Worker odbiera zdarzenie, kategoryzuje opis, zapisuje kategorię i publikuje `TransferCategorized`.
-4. Błąd przetwarzania: kilka ponowień, potem dead-letter queue.
-5. `GET /transfers/{id}` pokazuje status (Pending → Categorized).
+## Flow
+1. `POST /transfers` saves the transfer and a row in the Outbox table in a single transaction.
+2. The dispatcher reads the Outbox and publishes `TransferCreated` to the broker.
+3. The worker receives the event, categorizes the description, saves the category and publishes `TransferCategorized`.
+4. Processing failure: a few retries, then the dead-letter queue.
+5. `GET /transfers/{id}` shows the status (Pending → Categorized).
 
-## Struktura repozytorium
+## Repository structure
 ```
 transfer-categorizer/
 ├─ src/
-│  ├─ Transfers.Contracts/        # zdarzenia
-│  ├─ Transfers.Domain/           # encje, reguły
-│  ├─ Transfers.Application/      # use case'y, interfejsy
-│  ├─ Transfers.Infrastructure/   # EF Core, Outbox, adaptery brokerów
+│  ├─ Transfers.Contracts/        # events
+│  ├─ Transfers.Domain/           # entities, rules
+│  ├─ Transfers.Application/      # use cases, interfaces
+│  ├─ Transfers.Infrastructure/   # EF Core, Outbox, broker adapters
 │  ├─ Transfers.Api/              # ASP.NET Core
 │  └─ Transfers.Worker/           # BackgroundService
 ├─ tests/
@@ -43,99 +43,69 @@ transfer-categorizer/
 
 ---
 
-## Etap 0 – Setup (0,5 dnia)
-- [ ] Repo na GitHub, `.gitignore`, `.editorconfig`
-- [ ] Solution + 6 projektów src + 3 testowe, referencje zgodne z kierunkiem zależności (Domain bez zależności)
-- [ ] `docker-compose.yml`: PostgreSQL 16 + RabbitMQ (management)
-- [ ] Pusty workflow CI: build + test
+## Stage 0 – Setup (0.5 day) ✅
+- [x] GitHub repo, `.gitignore`, `.editorconfig`
+- [x] Solution + 6 src projects + 3 test projects, references following the dependency direction (Domain with no dependencies)
+- [x] `docker-compose.yml`: PostgreSQL 16 + RabbitMQ (management)
+- [x] Empty CI workflow: build + test
 
-**Gotowe, gdy:** `dotnet build` i `docker compose up` działają od zera.
+**Done when:** `dotnet build` and `docker compose up` work from scratch.
 
-## Etap 1 – API + baza (dzień 1-2)
-- [ ] Encja `Transfer` (Id, Amount, Currency, Description, CreatedAt, Status, Category)
-- [ ] EF Core + Npgsql, pierwsza migracja
+## Stage 1 – API + database (day 1-2)
+- [ ] `Transfer` entity (Id, Amount, Currency, Description, CreatedAt, Status, Category)
+- [ ] EF Core + Npgsql, first migration
 - [ ] `POST /transfers`, `GET /transfers/{id}`
-- [ ] Walidacja wejścia, ProblemDetails dla błędów
-- [ ] Testy jednostkowe domeny
+- [ ] Input validation, ProblemDetails for errors
+- [ ] Domain unit tests
 
-**SQL:** zaprojektuj tabelę świadomie (typy, ograniczenia, `NOT NULL`, indeks po `Status` i `CreatedAt`).
+**SQL:** design the table deliberately (types, constraints, `NOT NULL`, index on `Status` and `CreatedAt`).
 
-## Etap 2 – Outbox + messaging (tydzień 1)
-- [ ] Tabela Outbox, zapis przelewu i wiadomości w jednej transakcji
-- [ ] Interfejs `IMessagePublisher`, adapter RabbitMQ
-- [ ] Dispatcher w `Transfers.Worker` (BackgroundService, `CancellationToken`)
-- [ ] Konsument `TransferCreated`
-- [ ] `RuleBasedCategorizer` (słowa kluczowe) za `ITransferCategorizer`
-- [ ] Publikacja `TransferCategorized`, status → Categorized
+## Stage 2 – Outbox + messaging (week 1)
+- [ ] Outbox table, saving the transfer and the message in one transaction
+- [ ] `IMessagePublisher` interface, RabbitMQ adapter
+- [ ] Dispatcher in `Transfers.Worker` (BackgroundService, `CancellationToken`)
+- [ ] `TransferCreated` consumer
+- [ ] `RuleBasedCategorizer` (keywords) behind `ITransferCategorizer`
+- [ ] Publish `TransferCategorized`, status → Categorized
 
-**Gotowe, gdy:** POST → po chwili GET pokazuje kategorię.
+**Done when:** POST → after a moment GET shows the category.
 
-## Etap 3 – Niezawodność i testy (tydzień 2)
-- [ ] Retry z backoffem, dead-letter queue
-- [ ] Idempotencja: tabela przetworzonych `MessageId`
-- [ ] Testy integracyjne z Testcontainers (prawdziwy PostgreSQL i RabbitMQ)
-- [ ] Testy kontraktowe kształtu zdarzeń
-- [ ] CI: build, testy, obraz Dockera
+## Stage 3 – Reliability and tests (week 2)
+- [ ] Retry with backoff, dead-letter queue
+- [ ] Idempotency: table of processed `MessageId`s
+- [ ] Integration tests with Testcontainers (real PostgreSQL and RabbitMQ)
+- [ ] Contract tests for event shapes
+- [ ] CI: build, tests, Docker image
 
-**SQL:** zapytanie z `EXPLAIN` przed i po dodaniu indeksu.
+**SQL:** a query with `EXPLAIN` before and after adding an index.
 
-> Po etapie 3 masz kompletne MVP. Dalsze etapy to rozszerzenia.
+> After stage 3 you have a complete MVP. Later stages are extensions.
 
-## Etap 4 – Druga implementacja brokera i obserwowalność (tydzień 3)
-- [ ] Adapter Azure Service Bus (wg oficjalnej instrukcji emulatora: aka.ms/servicebusemulator)
-- [ ] Wybór brokera z konfiguracji (DI)
-- [ ] Serilog (logi strukturalne), health checks
-- [ ] Opcjonalnie: OpenTelemetry, Kafka jako trzeci adapter
+## Stage 4 – Second broker implementation and observability (week 3)
+- [ ] Azure Service Bus adapter (per the official emulator instructions: aka.ms/servicebusemulator)
+- [ ] Broker selection from configuration (DI)
+- [ ] Serilog (structured logs), health checks
+- [ ] Optional: OpenTelemetry, Kafka as a third adapter
 
-## Etap 5 – Raporty SQL (tydzień 3-4)
-Zapytania pisane ręcznie, wystawione jako endpointy raportowe lub skrypty w `docs/sql/`:
-- [ ] Wydatki per kategoria i miesiąc (`GROUP BY`, `date_trunc`)
-- [ ] Top 10 merchantów (CTE)
-- [ ] Udział kategorii w sumie (funkcje okna: `SUM() OVER`)
-- [ ] Zmiana miesiąc do miesiąca (`LAG`)
-- [ ] Opis każdego zapytania i planu wykonania w README
+## Stage 5 – SQL reports (week 3-4)
+Hand-written queries, exposed as report endpoints or scripts in `docs/sql/`:
+- [ ] Spending per category and month (`GROUP BY`, `date_trunc`)
+- [ ] Top 10 merchants (CTE)
+- [ ] Category share of the total (window functions: `SUM() OVER`)
+- [ ] Month-over-month change (`LAG`)
+- [ ] Description of each query and its execution plan in the README
 
-## Etap 6 – Databricks (tydzień 4-5)
-Cel: potok danych oparty o przelewy z projektu.
-- [ ] Wygeneruj lub zanonimizuj zbiór przelewów (kilka tysięcy rekordów)
-- [ ] Eksport z PostgreSQL do plików (CSV/JSON/Parquet) albo odczyt przez JDBC
-- [ ] **Bronze:** surowe dane, ingestia przez Auto Loader
-- [ ] **Silver:** czyszczenie opisów, deduplikacja, normalizacja nazw merchantów
-- [ ] **Gold:** agregaty wydatków + zbiór treningowy (opis → kategoria)
-- [ ] Organizacja w Unity Catalog (catalog / schema / uprawnienia)
-- [ ] Notebooki i opis architektury w `docs/databricks/`
+## Stage 6 – Databricks (week 4-5)
+Goal: a data pipeline based on the project's transfers.
+- [ ] Generate or anonymize a set of transfers (a few thousand records)
+- [ ] Export from PostgreSQL to files (CSV/JSON/Parquet) or read via JDBC
+- [ ] **Bronze:** raw data, ingestion with Auto Loader
+- [ ] **Silver:** cleaning descriptions, deduplication, normalizing merchant names
+- [ ] **Gold:** spending aggregates + training set (description → category)
+- [ ] Organization in Unity Catalog (catalog / schema / permissions)
+- [ ] Notebooks and architecture description in `docs/databricks/`
 
-Nazwy produktów i dostępne opcje (w tym darmowe środowisko) sprawdź w oficjalnej dokumentacji: docs.databricks.com.
+Check product names and available options (including the free environment) in the official documentation: docs.databricks.com.
 
-## Etap 7 – Model ML (tydzień 5-6)
-- [ ] Trening klasyfikatora tekstu (scikit-learn, potem opcjonalnie Keras) na zbiorze Gold
-- [ ] Ewaluacja: accuracy, macierz pomyłek, porównanie z regułami
-- [ ] Eksport do ONNX i wywołanie z .NET **albo** mała usługa HTTP
-- [ ] `MlTransferCategorizer` jako druga implementacja `ITransferCategorizer`
-- [ ] Fallback do reguł przy niskiej pewności modelu
-
-## Etap 8 – Dopracowanie (tydzień 6)
-- [ ] README: diagram przepływu, decyzje architektoniczne („dlaczego Outbox", „dlaczego adapter brokera"), uruchomienie jedną komendą, uruchomienie testów
-- [ ] Badge CI, zrzuty ekranu/GIF z działania
-- [ ] Opis projektu do CV i LinkedIn (3-4 zdania)
-- [ ] Przygotowanie odpowiedzi na pytania rekrutacyjne o Outbox, idempotencję, retry
-
-## Mapa wymagań
-| Wymaganie z ofert | Gdzie w projekcie |
-|---|---|
-| OOP, SOLID, clean code | warstwy, interfejsy w Application |
-| ASP.NET Core, REST | Transfers.Api |
-| async, wielowątkowość | BackgroundService, CancellationToken |
-| messaging, event-driven | RabbitMQ + Service Bus za jednym interfejsem |
-| DI | rejestracja adapterów, wybór z konfiguracji |
-| EF Core, SQL | migracje, indeksy, raporty SQL |
-| testy unit/integration/contract | trzy projekty testowe |
-| CI/CD, Git | GitHub Actions |
-| logging, monitoring | Serilog, health checks, OpenTelemetry |
-| Data Engineering | etap 6 (Databricks) |
-
-## Zasady pracy
-- Jeden etap = jedna gałąź + PR do `main` (nawet samej sobie – ćwiczy workflow Git).
-- Commity małe, z sensownymi komunikatami.
-- Po każdym etapie uzupełnij `PROGRESS.md`: co zrobione, czego się nauczyłam, co było trudne.
-- Kod pisz sama; pytania zadawaj o fragmenty, które się zacinają.
+## Stage 7 – ML model (week 5-6)
+- [ ] Train a text classifier (scikit-learn, optionally Keras later) on the Gold
