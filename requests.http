@@ -1,0 +1,39 @@
+$baseUrl = "http://localhost:5088"
+
+$transfers = @(
+    @{ amount = 87.45;   currency = "PLN"; description = "Biedronka zakupy" },
+    @{ amount = 43.99;   currency = "PLN"; description = "Netflix" },
+    @{ amount = 2100.00; currency = "PLN"; description = "Czynsz listopad" },
+    @{ amount = 312.60;  currency = "PLN"; description = "Rachunek za prąd Tauron" },
+    @{ amount = 54.30;   currency = "PLN"; description = "Orlen stacja paliw" },
+    @{ amount = 19.99;   currency = "PLN"; description = "Spotify Premium" },
+    @{ amount = 129.00;  currency = "PLN"; description = "Karta Multisport" },
+    @{ amount = 68.20;   currency = "PLN"; description = "Żabka Poznań" },
+    @{ amount = 38.50;   currency = "PLN"; description = "Uber przejazd" },
+    @{ amount = 245.00;  currency = "PLN"; description = "Rossmann kosmetyki" },
+    @{ amount = 89.90;   currency = "PLN"; description = "Internet Orange abonament" },
+    @{ amount = 156.78;  currency = "PLN"; description = "Lidl zakupy spożywcze" },
+    @{ amount = 72.00;   currency = "PLN"; description = "Apteka Gemini leki" },
+    @{ amount = 4200.00; currency = "PLN"; description = "Wynagrodzenie za listopad" },
+    @{ amount = 31.00;   currency = "PLN"; description = "Bilet miesięczny MPK Poznań" },
+    @{ amount = 119.99;  currency = "PLN"; description = "Zalando zwrot" },
+    @{ amount = 250.00;  currency = "PLN"; description = "Przelew do Anny, prezent urodzinowy" },
+    @{ amount = 64.50;   currency = "PLN"; description = "Pizzeria Da Grasso kolacja" },
+    @{ amount = 29.00;   currency = "PLN"; description = "Allegro paczkomat InPost" },
+    @{ amount = 500.00;  currency = "PLN"; description = "Wpłata na konto oszczędnościowe" }
+)
+
+foreach ($t in $transfers) {
+    $json  = $t | ConvertTo-Json -Compress
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)   # keeps ą, ę, ż, ś intact
+
+    try {
+        $response = Invoke-RestMethod -Method Post -Uri "$baseUrl/transfers" `
+            -ContentType "application/json; charset=utf-8" -Body $bytes
+        Write-Host "OK   $($t.description)" -ForegroundColor Green
+        $response | ConvertTo-Json -Compress | Write-Host
+    }
+    catch {
+        Write-Host "FAIL $($t.description): $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
