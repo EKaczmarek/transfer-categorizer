@@ -52,11 +52,15 @@ transfer-categorizer/
 **Done when:** `dotnet build` and `docker compose up` work from scratch.
 
 ## Stage 1 – API + database (day 1-2)
-- [ ] `Transfer` entity (Id, Amount, Currency, Description, CreatedAt, Status, Category)
-- [ ] EF Core + Npgsql, first migration
-- [ ] `POST /transfers`, `GET /transfers/{id}`
-- [ ] Input validation, ProblemDetails for errors
-- [ ] Domain unit tests
+- [X] `Transfer` entity (Id, Amount, Currency, Description, CreatedAt, Status, Category)
+- [x] EF Core + Npgsql, first migration
+  - `DbContext` and entity configuration in `Transfers.Infrastructure`, with explicit column types, `NOT NULL`, max lengths, and indexes on `Status` and `CreatedAt`
+  - create the first migration and apply it to the Podman PostgreSQL
+  - look at the generated SQL and the actual table in `psql` (`\d transfers`, `__EFMigrationsHistory`) – this is the stage's SQL exercise
+- [x] `POST /transfers`, `GET /transfers/{id}`
+- [x] Input validation, ProblemDetails for errors
+- [x] Mock data: a small `.http` file or a seed script with 10-20 realistic Polish transfer descriptions (e.g. "Biedronka zakupy", "Netflix", "Czynsz listopad"); reused to test the categorizer in Stage 2 (the few-thousand-record dataset is only needed in Stage 6) - used console C# application with TransfersSeed project on this computer 
+- [x] Domain unit tests
 
 **SQL:** design the table deliberately (types, constraints, `NOT NULL`, index on `Status` and `CreatedAt`).
 
