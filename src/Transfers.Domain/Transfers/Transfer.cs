@@ -7,7 +7,7 @@ public class Transfer
     public string Currency { get; private set; }    
     public string Description { get; private  set; }
     public TransferStatus Status { get; private set; }
-    public TransferCategory? Category { get; private set;}
+    public string? Category { get; private set;}
     public DateTime CreatedAt { get; private set; }
     public const int MaxDescriptionLength = 200;  
     private Transfer()
@@ -44,7 +44,7 @@ public class Transfer
         return new Transfer(amount, currency.ToUpperInvariant(), description.Trim(), createdAt);
     }
 
-    public void MarkCategorized(TransferCategory category)
+    public void MarkCategorized(string category)
     {
         if (Status == TransferStatus.Categorized)
             throw new InvalidOperationException("Transfer is already categorized.");

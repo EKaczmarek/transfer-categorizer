@@ -8,7 +8,7 @@ Update after every work session. Task details: `PLAN.md`.
 |---|---|---|---|---|
 | 0 | Setup (repo, solution, docker-compose, CI) | ✅ done | | 2026-11-16 |
 | 1 | API + database (EF Core, PostgreSQL) | ✅ done | 2026-11-17 | 2026-11-24 |
-| 2 | Outbox + RabbitMQ + worker + rules | ⬜ not started | | |
+| 2 | Outbox + RabbitMQ + worker + rules | ✅ done  | 2026-11-24 | 2026-11-27 |
 | 3 | Retry, DLQ, idempotency, tests, CI | ⬜ not started | | |
 | 4 | Service Bus, Serilog, health checks | ⬜ not started | | |
 | 5 | SQL reports | ⬜ not started | | |
@@ -82,6 +82,9 @@ Next: Stage 2 – Outbox table, `IMessagePublisher` + RabbitMQ adapter, dispatch
   - `podman logs --tail 50 <nazwa>`
   - `podman logs -f <nazwa>`
   - `podman exec -it <nazwa> sh` – shell w kontenerze
+  
+  - `podman exec -it transfers-postgres psql -U transfers -d transfers` – psql
+
 
 - **Zdrowie kontenerów**
   - `podman healthcheck run <nazwa>` – kod wyjścia 0 = zdrowy

@@ -41,5 +41,6 @@ public class TransferConfiguration : IEntityTypeConfiguration<Transfer>
 
         builder.HasIndex(t => t.Status).HasDatabaseName("ix_transfers_status");
         builder.HasIndex(t => t.CreatedAt).HasDatabaseName("ix_transfers_created_at");
+
     }
 }

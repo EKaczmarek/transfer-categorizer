@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
+using Transfers.Application;
+using Transfers.Contracts;
 using Transfers.Domain;
 using Transfers.Infrastructure.Persistence;
 
@@ -13,6 +15,7 @@ public static class TransfersEndpoints
             CreateTransferRequest req,
             TransfersDbContext db,
             TimeProvider clock,
+            IOutbox outbox,
             CancellationToken ct) =>
         {
             Transfer transfer;
@@ -30,9 +33,24 @@ public static class TransfersEndpoints
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
+                var messageId = Guid.NewGuid();
+
             db.Transfers.Add(transfer);
-            await db.SaveChangesAsync(ct);
+            outbox.Add(
+                OutboxMessageTypes.TransferCreated.ToString(),
+                new TransferCreated(
+                    messageId,
+                    transfer.Id,
+                    transfer.Amount,
+                    transfer.Currency,
+                    transfer.Description,
+                    clock.GetUtcNow()),
+                messageId);
+
+            await db.SaveChangesAsync(ct);   // JEDEN zapis: transfer + outbox w jednej transakcji
+
             return Results.Created($"/transfers/{transfer.Id}", TransferResponse.From(transfer));
+
         });
 
         group.MapGet("/{id:guid}", async (Guid id, TransfersDbContext db, CancellationToken ct) =>

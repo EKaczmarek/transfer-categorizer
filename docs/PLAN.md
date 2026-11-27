@@ -51,7 +51,7 @@ transfer-categorizer/
 
 **Done when:** `dotnet build` and `docker compose up` work from scratch.
 
-## Stage 1 – API + database (day 1-2)
+## Stage 1 – API + database (day 1-2) ✅
 - [X] `Transfer` entity (Id, Amount, Currency, Description, CreatedAt, Status, Category)
 - [x] EF Core + Npgsql, first migration
   - `DbContext` and entity configuration in `Transfers.Infrastructure`, with explicit column types, `NOT NULL`, max lengths, and indexes on `Status` and `CreatedAt`
@@ -64,13 +64,13 @@ transfer-categorizer/
 
 **SQL:** design the table deliberately (types, constraints, `NOT NULL`, index on `Status` and `CreatedAt`).
 
-## Stage 2 – Outbox + messaging (week 1)
-- [ ] Outbox table, saving the transfer and the message in one transaction
-- [ ] `IMessagePublisher` interface, RabbitMQ adapter
-- [ ] Dispatcher in `Transfers.Worker` (BackgroundService, `CancellationToken`)
-- [ ] `TransferCreated` consumer
-- [ ] `RuleBasedCategorizer` (keywords) behind `ITransferCategorizer`
-- [ ] Publish `TransferCategorized`, status → Categorized
+## Stage 2 – Outbox + messaging (week 1) ✅
+- [x] Outbox table, saving the transfer and the message in one transaction
+- [x] `IMessagePublisher` interface, RabbitMQ adapter
+- [x] Dispatcher in `Transfers.Worker` (BackgroundService, `CancellationToken`)
+- [x] `TransferCreated` consumer
+- [x] `RuleBasedCategorizer` (keywords) behind `ITransferCategorizer`
+- [x] Publish `TransferCategorized`, status → Categorized
 
 **Done when:** POST → after a moment GET shows the category.
 

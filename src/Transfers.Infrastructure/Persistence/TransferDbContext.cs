@@ -6,6 +6,7 @@ namespace Transfers.Infrastructure.Persistence;
 public class TransfersDbContext(DbContextOptions<TransfersDbContext> options) : DbContext(options)
 {
     public DbSet<Transfer> Transfers => Set<Transfer>();
+    public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

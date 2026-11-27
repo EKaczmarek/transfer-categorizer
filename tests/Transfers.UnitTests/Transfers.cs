@@ -91,4 +91,17 @@ public class TransferTests
         Assert.ThrowsAny<ArgumentException>(() =>
             Transfer.Create(10m, currency!, "Netflix", Now));
     }
+
+    [Theory]
+    [InlineData("Biedronka zakupy", "Groceries")]
+    [InlineData("Netflix", "Subscriptions")]
+    [InlineData("Czynsz listopad", "Housing")]
+    [InlineData("Żabka", "Groceries")]
+    [InlineData("coś nieznanego", "Other")]
+    public void Categorize_WithKnownDescriptions_ReturnsCorrectCategory(string description, string expectedCategory)
+    {
+        var transfer = Transfer.Create(10m, "PLN", description, Now);
+        transfer.MarkCategorized(expectedCategory);
+        Assert.Equal(expectedCategory, transfer.Category);
+    }
 }
